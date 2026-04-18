@@ -1,64 +1,59 @@
-from mesa import Model
-from .nation import NationAgent
+import random
+from nation import Nation
+from grid import WorldGrid
 
-class WorldModel(Model):
-    """World model - manages all nations and the simulation."""
 
-    def __init__(self):
-        """Initialize the model and create the three initial nations."""
-        super().__init__()
+
+class WorldModel:
+    """
+    The simulation engine — manages all nations and the grid.
+    Pure Python + NumPy — no external framework required.
+    """
+
+    GRID_WIDTH  = 50
+    GRID_HEIGHT = 50
+    def __init__(self,starting_nations: list[Nation]):
+        self.grid = WorldGrid(self.GRID_WIDTH, self.GRID_HEIGHT)
+
+        self.nations = starting_nations
+
+        self.year = 0
+
         print("\n--- Starting Simulation ---")
-        NationAgent(
-            self,
-            "Nation_A",
-            population=1000,
-            food=5000,
-            food_production=10500,
-            growth_rate=0.02,
-            carrying_capacity=5000
-        )
-        agent = self.agents[-1]
-        print(f"{agent.country}: Population={agent.population}, Food={agent.food}")
-        NationAgent(
-            self,
-            "Nation_B",
-            population=1500,
-            food=7000,
-            food_production=16000,
-            growth_rate=0.025,
-            carrying_capacity=7000
-        )
-        agent = self.agents[-1]
-        print(f"{agent.country}: Population={agent.population}, Food={agent.food}")
-        NationAgent(
-            self,
-            "Nation_C",
-            population=800,
-            food=4000,
-            food_production=8200,
-            growth_rate=0.015,
-            carrying_capacity=4000
-        )
-        agent = self.agents[-1]
-        print(f"{agent.country}: Population={agent.population}, Food={agent.food}")
+        self._place_on_grid()
         print("---------------------------\n")
 
+    def _place_on_grid(self):
+        used_positions = set()
+        for nation in self.nations:
+            while True:
+                x = random.randint(0, self.GRID_WIDTH  - 1)
+                y = random.randint(0, self.GRID_HEIGHT - 1)
+                if (x, y) not in used_positions:
+                    self.grid.place_nation(nation, x, y)  # ← الأسلوب الجديد
+                    used_positions.add((x, y))
+                    break
+
+
+
     def step(self):
-        """Execute one simulation step - each nation takes its turn."""
-        self.agents.shuffle_do("step")
+        self.year += 1
 
-    def print_summary(self):
-        '''
-        summary events for each nation
+        random.shuffle(self.nations)
 
-        :param self: nation
-        '''
-        print("\n" + "=" * 70)
-        print(f"{'SIMULATION SUMMARY':^70}")
-        print("=" * 70)
-        print(f"{'Nation':<15} {'Population':<15} {'Status':<10} {'Famines':<10} {'Food':<10} {'Wars':<10}")
-        print("-" * 70)
-        for agent in self.agents:
-            status = "Alive" if int(agent.population) > 0 else "Extinct"
-            print(f"{agent.country:<15} {int(agent.population):<15,} {status:<10} {agent.famine_count:<10} {int(agent.food_history[-1]):<10} {agent.war_count:<10}")
-        print("=" * 70 + "\n")
+        for nation in self.nations:
+            if nation.is_alive:
+                neighbors = self.grid.get_neighbors(nation)
+                nation.step(neighbors)
+        self.grid.spread(self.nations)
+
+
+
+    def run(self, years: int):
+        for _ in range(years):
+            self.step()
+
+    def display(self):
+        self.grid.display(self.nations)
+    def get_snapshot(self):
+        return self.grid.get_snapshot(self.nations)

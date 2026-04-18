@@ -1,107 +1,174 @@
-# Civilization Simulation 🏛️
+# Project Omran — عُمران
+### Civilization Simulation
 
-Project name: Omran (عُمران)
-
-This project is named "Omran" (Arabic: عُمران, transliterated "Omran") in homage to Ibn Khaldun's concept of "ʿilm al-ʿumrān" — the systematic study of civilization, urbanization, and social organization. The simulation models population growth, resource management, conflict, and collapse — themes central to Ibn Khaldun's analysis — so the name signals the project's intellectual lineage and its focus on the rise, stability, and decline of societies.
-
-A high-fidelity Agent-Based Model (ABM) simulating the complex dynamics, evolution, and collapse of civilizations. This project leverages Object-Oriented Programming (OOP) and advanced numerical methods to model population growth and resource competition among different nations.
+> *"To simulate how shared ideas shape the rise and fall of civilizations —*
+> *translating Ibn Khaldun's theory of Asabiyyah into computational physics."*
 
 ---
 
-## 🔭 The Vision
+## Why Omran?
 
-> **"To decode the chaotic laws of history using the precision of computational physics."**
+Named after Ibn Khaldun's concept of *'ilm al-'umran* — the systematic study
+of civilization, urbanization, and social organization.
 
----
+This project asks a simple but profound question:
 
-## 📋 Overview
+> **How does a civilization rise — and why does another one collapse?**
 
-This project provides a comprehensive simulation of civilization life cycles, tracking the following variables:
-- **Population Growth**: Precise simulation using the Logistic equation solved via the **4th-order Runge-Kutta (RK4)** method.
-- **Resource Management**: A dynamic system for food production and consumption and its impact on state survival.
-- **Conflicts and Warfare**: Modeling stochastic military interactions and their demographic consequences.
-- **Civilization Collapse**: Tracking extinction events resulting from recurring famines or devastating wars.
-
----
-
-## ✨ Key Features
-
-- **Stable Mathematical Modeling**: Implementation of the RK4 algorithm to ensure numerical precision and stability in population dynamics.
-- **Multi-Agent Interaction**: Simultaneous simulation of multiple nations (e.g., Nation_A, Nation_B, Nation_C) competing in a shared environment.
-- **Dynamic Feedback Loops**: Interdependent relationship between population size, weather-impacted food production, and consumption.
-- **Professional Data Visualization**: Integrated charts illustrating population trends and food stocks for each nation over time.
+The answer, according to Ibn Khaldun, lies not only in resources and armies —
+but in **ideas** and **social cohesion (Asabiyyah)**. This simulation translates
+that theory into equations and code.
 
 ---
 
-## 🏗️ Project Structure
+## What the Code Does Right Now
 
-```text
-civilization_sim/
-├── notebooks/
-│   └── visualization.ipynb    # Main file for running the simulation and viewing results
-├── src/
-│   ├── __init__.py
-│   ├── world.py               # Core simulation engine (WorldModel)
-│   └── nation.py              # Logic for nations and agents (NationAgent)
-└── README.md                  # Project documentation
+Three forces drive every civilization in the simulation:
+
+- **Population** — grows logistically via RK4, collapses under famine
+- **Territory** — spreads across a 2D NumPy grid, contested by warfare
+- **Food** — produced each year with weather randomness, consumed by population
+
+When two civilizations meet on the grid, the stronger one takes the cell.
+Both sides take losses. Civilizations expand until they hit each other — or collapse.
+
+---
+
+## Project Structure
+
+```
+omran/
+├── functions.py   # RK4 solver + stochastic growth — pure math, no dependencies
+├── nation.py      # Nation class — population, food, warfare behavior
+├── grid.py        # WorldGrid — spatial map, neighbor detection, conflict resolution
+├── world.py       # WorldModel — orchestrator, runs the simulation loop
+├── main.py        # Entry point — creates nations, runs, renders Plotly output
+├── MVP/           # v1 — Jupyter notebook, Mesa + Matplotlib (preserved for reference)
+└── README.md
 ```
 
 ---
 
-## 🔧 Requirements and Setup
+## Tech Stack
 
-### Requirements:
-- Python 3.8+
-- [Mesa](https://mesa.readthedocs.io/) (ABM framework)
-- Matplotlib (Data visualization)
-- Jupyter Notebook
+| Tool | Purpose |
+|---|---|
+| Python | Core language |
+| NumPy | Spatial grid and vectorized operations |
+| Plotly | Interactive heatmap and population charts |
 
-### How to Run:
-1. **Install the necessary libraries**:
-   ```bash
-   pip install mesa matplotlib jupyter
-   ```
-2. **Open the Jupyter Notebook**:
-   ```bash
-   jupyter notebook notebooks/visualization.ipynb
-   ```
-3. **Execute the cells**: Run the cells in order to initialize the `WorldModel`, run the simulation for the desired number of years, and generate the plots.
+> No game engines. No ABM frameworks. Pure Python + Math.
 
 ---
 
-## 🔬 Technical Principles
+## Architectural Decisions
 
-### 1. Population Growth
-The simulation relies on the Logistic Growth Equation to represent environmental carrying capacity:
-`dP/dt = r * P * (1 - P/K)`
-Population counts are updated at each time step using the **RK4 solver** to ensure smooth and accurate transitions.
+This project went through a deliberate architectural refactor.
+These are the decisions that shaped the current structure:
 
-### 2. Food Management
-Food production is calculated based on base production modified by a random weather factor. Food shortages lead to:
-- Increased mortality rates (Famine).
-- Cessation of natural population growth.
+**Dependency Injection**
+`WorldModel` does not create nations internally.
+Nations are defined in `main.py` and passed in as a parameter.
+The simulation engine is decoupled from the scenario — you can swap
+civilizations without touching the engine.
 
-### 3. Warfare System
-Wars occur probabilistically between nations. If a nation is stronger (larger population) than a randomly selected neighbor, it may launch an attack. This results in percentage-based population losses for both parties, which can lead to the sudden collapse of civilizations.
+**Single Source of Truth — Spatial Data**
+Nations have no `x` or `y` attributes.
+`WorldGrid` owns the `ownership` array and is the only place that knows
+where any civilization is. This prevents state drift between the agent
+and the map.
+
+**Spatial Logic Belongs in the Grid**
+`get_neighbors()` was moved from `WorldModel` to `WorldGrid`.
+It queries the `ownership` array directly via `np.where` instead of
+comparing coordinate attributes on Nation objects.
+
+**Combat SRP**
+`WorldGrid._resolve_conflict()` does not call `receive_damage()` directly.
+It calls `win_clash()` and `lose_clash()` on Nation — keeping the grid
+responsible for spatial outcomes and the Nation responsible for
+its own demographic response.
+
+**Output is Not the Engine's Problem**
+`print_summary()` was moved out of `WorldModel` into `main.py`.
+The simulation engine returns data. Formatting is the caller's responsibility.
 
 ---
 
-## 📈 Output Analysis
+## Technical Principles
 
-Upon completion of the simulation (e.g., after 3000 years), the project provides:
-1. **Statistical Summary**: Displays final population, status (Alive/Extinct), famine count, and war count.
-2. **Visual Charts**:
-   - **Solid Line (Blue)**: Represents population change.
-   - **Dashed Line (Green)**: Represents food stock.
+### Population Growth
+```
+dP/dt = r x P x (1 - P/K)
+```
+Solved via RK4 at each time step. Integer population is recovered via
+a Monte Carlo step (stochastic rounding) to avoid float drift.
+
+### Territorial Expansion
+```
+spread_rate = population / carrying_capacity
+```
+Each year, a civilization expands to neighboring cells proportional to
+how close it is to its carrying capacity.
+
+### Warfare on the Grid
+```
+attacker_strength = population x presence_value
+defender_strength = population x presence_value
+
+winner takes the cell — both sides take losses
+```
 
 ---
 
-## 📝 Development Notes
+## Development Phases
 
-- **Modular Design**: Logic (in the `src` folder) is strictly separated from Visualization (in the `notebooks` folder).
-- **Auto-Reload**: The notebook utilizes the `autoreload` extension to ensure changes in Python files are detected automatically without restarting the kernel.
+| Phase | Description | Status |
+|---|---|---|
+| 0 | Architectural Refactor — DI, SRP, Single Source of Truth | ✅ Done |
+| 1 | Core OOP — Nation + World classes | ✅ Done |
+| 2 | Mathematical Engine — RK4 + Stochastic Growth | ✅ Done |
+| 3 | Spatial Environment — NumPy Grid + Spread + Warfare | ✅ Done |
+| 4 | Plotly Dashboard — Interactive map and population curves | ✅ Done |
+| 5 | Idea Spread — SIR model for ideological diffusion | ⏳ |
+| 6 | Advanced Logic — Economy, Trade, Collapse scenarios | ⏳ |
 
 ---
-**Developed as part of a complex systems simulation project.**
 
-Copyright © 2026 Ahmed. All rights reserved.
+## What's Coming
+
+**Phase 5 — Idea Spread**
+
+This is the intellectual core of the project — the part that makes it Omran
+and not just another population simulator.
+
+The plan: add `idea_strength` and `asabiyyah` as dynamic variables to each
+civilization. Ideas spread between neighboring civilizations using a modified
+SIR model (Susceptible → Infected → Resistant). A civilization exposed to a
+stronger idea may adopt it — strengthening its cohesion — or resist it,
+triggering conflict.
+
+Asabiyyah then decays when the driving idea weakens:
+
+```
+dA/dt = -0.01 x (1 - idea_strength)
+```
+
+The current architecture makes this possible cleanly: nations are self-contained,
+the grid is spatially independent, and neighbors are already detected correctly.
+Phase 5 adds a new layer on top of what exists — it does not require rebuilding
+anything.
+
+---
+
+## Intellectual Lineage
+
+- **Ibn Khaldun** — *Muqaddimah* (1377) — Theory of Asabiyyah and civilizational cycles
+- **Peter Turchin** — *Cliodynamics* — Mathematical modeling of historical dynamics
+- **Thomas Malthus** — Population and resource limits
+
+---
+
+*Developed as a personal project in computational physics and complex systems.*
+
+*Copyright 2026 Ahmed. All rights reserved.*

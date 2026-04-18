@@ -1,95 +1,124 @@
 import random
-from mesa import Agent
-# Constants for simulation
-WARFARE_PROBABILITY = 0.1
+from functions import solve_rk4
+
+#  Constants for simulation
+WARFARE_PROBABILITY        = 0.1
 FAMINE_INTENSITY_COEFFICIENT = 0.3
-ENEMY_DAMAGE = 0.1
-ATTACKER_DAMAGE = 0.04
-TIME_STEP = 1
-CONSUMPTION_PER_PERSON = 10  
+ENEMY_DAMAGE               = 0.1
+ATTACKER_DAMAGE            = 0.04
+TIME_STEP                  = 1
+CONSUMPTION_PER_PERSON     = 10
+MINOR_DAMAGE               = 0.05
+MAJOR_DAMAGE               = 0.1
 
-def derivative(population, growth_rate, carrying_capacity):
-    """Calculate the rate of population change using the Logistic equation."""
-    return growth_rate * population * (1 - population / carrying_capacity)
+class Nation:
+    """
+    Class representing a nation
+    in the simulation with population
+    and food resource management.
+    """
 
-def solve_rk4(population, time_step, growth_rate, carrying_capacity):
-    """Solve the population equation using 4th-order Runge-Kutta method."""
-    k1 = derivative(population, growth_rate, carrying_capacity)
-    k2 = derivative(population + 0.5 * time_step * k1, growth_rate, carrying_capacity)
-    k3 = derivative(population + 0.5 * time_step * k2, growth_rate, carrying_capacity)
-    k4 = derivative(population + time_step * k3, growth_rate, carrying_capacity)
 
-    population += (time_step / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
-    return population
-class NationAgent(Agent):
-    """Class representing a nation in the simulation with population and food resource management."""
-
-    def __init__(self, model, country, population, food, food_production, growth_rate, carrying_capacity):
+    def __init__(
+        self,
+        name,
+        population,
+        food,
+        food_production,
+        growth_rate,
+        carrying_capacity,
+    ):
         """
         Args:
-            model: The world model (WorldModel)
-            country: Name of the nation
-            population: Initial population count
-            food: Initial food stock
-            food_production: Annual food production
-            growth_rate: Population growth rate
-            carrying_capacity: Maximum population capacity
+            name             : Name of the civilization
+            population       : Initial population count
+            food             : Initial food stock
+            food_production  : Annual food production capacity
+            growth_rate      : Population growth rate (r)
+            carrying_capacity: Maximum sustainable population (K)
         """
-        super().__init__(model)
-        self.country = country
-        self.population = population
-        self.food = food
-        self.food_production = food_production
-        self.growth_rate = growth_rate
+        self.name              = name
+        self.population        = population
+        self.food              = food
+        self.food_production   = food_production
+        self.growth_rate       = growth_rate
         self.carrying_capacity = carrying_capacity
-        self.pop_history = [population]
-        self.food_history = [food]
-        self.war_count = 0
-        self.famine_count = 0
-    def step(self):
-        """Simulate one time step (one year)."""
-        # Calculate available food (each person consumes CONSUMPTION_PER_PERSON units)
-        consumption = self.pop_history[-1] * CONSUMPTION_PER_PERSON
-        weather_factor = random.uniform(0.8,1.2)
-        actual_production = self.food_production*weather_factor
-        self.food = self.food_history[-1] + actual_production - consumption
 
+        self.pop_history        = [population]
+        self.food_history       = [food]
+
+        self.war_count    = 0
+        self.famine_count = 0
+
+    @property
+    def is_alive(self) -> bool:
+        """True if the civilization still exists."""
+        return self.population > 0
+
+
+    def step(self, neighbors: list = None):
+        if not self.is_alive:
+            return
+
+        self._update_food()
+        self._update_population()
+        if neighbors:
+            self._attempt_warfare(neighbors)
+
+        self.pop_history.append(self.population)
+        self.food_history.append(self.food)
+
+    def _update_food(self):
+        consumption      = self.population * CONSUMPTION_PER_PERSON
+        weather_factor   = random.uniform(0.8, 1.2)
+        actual_production = self.food_production * weather_factor
+        self.food        = self.food + actual_production - consumption
+
+    def _update_population(self):
         if self.food >= 0:
-            # Normal population growth using Logistic equation and RK4
+            # Normal logistic growth via RK4
             self.population = solve_rk4(
-                int(self.population),
+                self.population,
                 TIME_STEP,
                 self.growth_rate,
-                self.carrying_capacity
+                self.carrying_capacity,
             )
         else:
-            # Famine: population decline based on food shortage
-            deficit_per_person = abs(self.food) / self.pop_history[-1]
+            deficit_per_person = abs(self.food) / max(1, self.population)
             death_rate = min(1.0, deficit_per_person * FAMINE_INTENSITY_COEFFICIENT)
-            deaths = int(self.pop_history[-1] * death_rate)
-            self.population = max(0, self.pop_history[-1] - deaths)
-            self.food = 0
-            self.famine_count +=1 
-            
+            deaths      = int(self.population * death_rate)
+            self.population = max(0, self.population - deaths)
+            self.food       = 0
+            self.famine_count += 1
 
-        # Attempt warfare
-        enemies = [a for a in self.model.agents if a != self and a.population > 0]
-
-        if len(enemies) > 0 and random.random() < WARFARE_PROBABILITY:
+    def _attempt_warfare(self, neighbors: list):
+        enemies = [n for n in neighbors if n.is_alive]
+        if enemies and random.random() < WARFARE_PROBABILITY:
             enemy = random.choice(enemies)
             if self.population > enemy.population:
                 self.attack(enemy)
-        # Record historical data
-        self.food_history.append(self.food)
-        self.pop_history.append(int(self.population))
 
-    def receive_damage(self, amount):
-        """Reduce population due to warfare."""
-        self.population = max(0, self.population - self.population*amount)
 
-    def attack(self, enemy):
-        """Launch an attack on an enemy nation."""
+    def receive_damage(self, amount: float):
+        self.population = max(0, self.population - self.population * amount)
+        if self.population < 1:
+            self.population = 0
+
+    def win_clash(self):
+        self.receive_damage(MINOR_DAMAGE)
+
+    def lose_clash(self):
+        self.receive_damage(MAJOR_DAMAGE)
+    def attack(self, enemy: "Nation"):
         enemy.receive_damage(ENEMY_DAMAGE)
-        enemy.war_count += 1
+        enemy.war_count += 1    
         self.receive_damage(ATTACKER_DAMAGE)
-        self.war_count += 1 
+        self.war_count += 1
+
+
+    def __repr__(self) -> str:
+        return (
+            f"Nation({self.name} | "
+            f"pop={int(self.population):,} | "
+            f"{'Alive' if self.is_alive else 'Extinct'})"
+        )

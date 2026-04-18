@@ -1,4 +1,2 @@
-mesa==3.4.1
-matplotlib==3.10.7
-jupyter==1.0.0
-notebook==7.5.2
+numpy>=1.21.0
+plotly>=5.9.0
