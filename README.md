@@ -38,12 +38,13 @@ Both sides take losses. Civilizations expand until they hit each other — or co
 
 ```
 omran/
-├── functions.py   # RK4 solver + stochastic growth — pure math, no dependencies
-├── nation.py      # Nation class — population, food, warfare behavior
-├── grid.py        # WorldGrid — spatial map, neighbor detection, conflict resolution
-├── world.py       # WorldModel — orchestrator, runs the simulation loop
-├── main.py        # Entry point — creates nations, runs, renders Plotly output
-├── MVP/           # v1 — Jupyter notebook, Mesa + Matplotlib (preserved for reference)
+├── src/
+│   ├── functions.py   # RK4 solver + stochastic growth — pure math, no dependencies
+│   ├── nation.py      # Nation class — population, food, warfare behavior
+│   ├── grid.py        # WorldGrid — spatial map, neighbor detection, conflict resolution
+│   ├── world.py       # WorldModel — orchestrator, runs the simulation loop
+│   └── main.py        # Entry point — creates nations, runs, renders Plotly output
+├── MVP/               # v1 — Jupyter notebook, Mesa + Matplotlib (preserved for reference)
 └── README.md
 ```
 
