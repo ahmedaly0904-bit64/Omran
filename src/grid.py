@@ -60,9 +60,8 @@ class WorldGrid:
             if not nation.is_alive:
                 continue
 
-            # How fast this nation spreads (0.0 → 1.0)
             spread_rate = nation.population / nation.carrying_capacity
-            spread_rate = min(1.0, spread_rate)   # cap at 1.0
+            spread_rate = min(1.0, spread_rate)
 
             ys, xs = np.where(self.ownership == nation)
 
@@ -104,13 +103,12 @@ class WorldGrid:
         """
         Two civilizations meet on a cell — the stronger one wins.
         Strength = population × presence value at the contested cell.
-        
         """
         attacker_strength = attacker.population * self.presence[y][x]
         defender_strength = defender.population * self.presence[y][x]
 
         if attacker_strength > defender_strength:
-            new_presence[y][x]  = self.presence[y][x] * 0.7  # war destroys
+            new_presence[y][x]  = self.presence[y][x] * 0.7
             new_ownership[y][x] = attacker
 
             attacker.win_clash()

@@ -1,7 +1,6 @@
 import random
 from functions import solve_rk4
 
-#  Constants for simulation
 WARFARE_PROBABILITY        = 0.1
 FAMINE_INTENSITY_COEFFICIENT = 0.3
 ENEMY_DAMAGE               = 0.1

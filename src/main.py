@@ -51,10 +51,10 @@ world.run(100)
 print_summary(world)
 world.display()
 colorscale = [
-    [0.0,   "grey"],   # ← 0 = فاضي
-    [0.33,  "red"],   # ← 1 = Nation_A
-    [0.66,  "green"],   # ← 2 = Nation_B
-    [1.0,   "blue"],   # ← 3 = Nation_C
+    [0.0,   "grey"],
+    [0.33,  "red"],
+    [0.66,  "green"],
+    [1.0,   "blue"],
 ]
 snapshot = world.get_snapshot()
 fig = make_subplots(1,2)

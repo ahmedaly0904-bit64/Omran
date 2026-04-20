@@ -30,7 +30,7 @@ class WorldModel:
                 x = random.randint(0, self.GRID_WIDTH  - 1)
                 y = random.randint(0, self.GRID_HEIGHT - 1)
                 if (x, y) not in used_positions:
-                    self.grid.place_nation(nation, x, y)  # ← الأسلوب الجديد
+                    self.grid.place_nation(nation, x, y)
                     used_positions.add((x, y))
                     break
 
