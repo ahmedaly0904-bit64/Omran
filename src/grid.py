@@ -132,3 +132,6 @@ class WorldGrid:
         snapshot = get_id(self.ownership)
 
         return snapshot,id_to_nation
+
+    def release(self,nation):
+        self.ownership[self.ownership == nation] = None

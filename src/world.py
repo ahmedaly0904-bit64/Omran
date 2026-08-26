@@ -46,6 +46,9 @@ class WorldModel:
             if nation.is_alive:
                 neighbors = self.grid.get_neighbors(nation)
                 nation.step(neighbors)
+        for nation in self.nations:
+            if not nation.is_alive:
+                self.grid.release(nation)
         self.grid.spread(self.nations)
         self.spread_idea()
         self.recover_idea()
