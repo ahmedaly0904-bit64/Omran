@@ -25,7 +25,7 @@ class WorldGrid:
         Return all alive nations within 1 cell (Moore neighborhood).
         This replaces Mesa's grid.get_neighbors().
         """
-        neighbors = set()
+        neighbors = {}
         ys, xs = np.where(self.ownership == nation)
 
         for y, x in zip(ys, xs):
@@ -36,7 +36,7 @@ class WorldGrid:
                 neighbor_owner = self.ownership[ny][nx]
 
                 if neighbor_owner is not None and neighbor_owner is not nation and neighbor_owner.is_alive:
-                    neighbors.add(neighbor_owner)
+                    neighbors[neighbor_owner] = None
 
         return list(neighbors)
 
@@ -83,20 +83,17 @@ class WorldGrid:
         for y, x in zip(ys_h, xs_h):
             if snapshot[y, x] == 0 or snapshot[y, x + 1] == 0:
                 continue
-            n1 = id_to_nation[snapshot[y, x]]
-            n2 = id_to_nation[snapshot[y, x + 1]]
-            pair = frozenset({n1, n2})
+            pair = tuple(sorted((snapshot[y, x], snapshot[y, x + 1])))
             border_lengths[pair] += 1
 
         for y, x in zip(ys_v, xs_v):
             if snapshot[y, x] == 0 or snapshot[y + 1, x] == 0:
                 continue
-            n1 = id_to_nation[snapshot[y, x]]
-            n2 = id_to_nation[snapshot[y + 1, x]]
-            pair = frozenset({n1, n2})
+            pair = tuple(sorted((snapshot[y, x], snapshot[y + 1, x])))
             border_lengths[pair] += 1
-        for pair, length in border_lengths.items():
-            n1,n2 = tuple(pair)
+        for (id1, id2), length in border_lengths.items():
+            n1 = id_to_nation[id1]
+            n2 = id_to_nation[id2]
             if not n1.is_alive or not n2.is_alive:
                 continue
             n1.border_attrition(length)
