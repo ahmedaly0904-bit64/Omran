@@ -42,6 +42,12 @@ starting_nations = [
         food=2000,
         growth_rate=0.025,
     ),
+    Nation(
+        name="Nation_D",
+        population=200,
+        food=2000,
+        growth_rate=0.13,
+    ),
 ]
 random.choice(starting_nations).idea.infect(0.01)
 world = WorldModel(starting_nations)
